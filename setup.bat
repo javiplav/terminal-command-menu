@@ -41,7 +41,7 @@ echo 🎉 Setup complete!
 echo.
 echo To use Terminal Command Menu:
 echo 1. Activate the virtual environment: venv\Scripts\activate.bat
-echo 2. Run the application: python -m terminal_menu.main
+echo 2. Run the application: terminal-menu (or cmd-menu, or tcm)
 echo.
 echo To deactivate the virtual environment later: deactivate
 echo.

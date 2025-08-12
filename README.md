@@ -31,7 +31,7 @@
 ## 🎬 Demo
 
 ```bash
-$ history-menu
+$ terminal-menu
 ```
 
 ```
@@ -89,16 +89,18 @@ pip install -e .
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Launch the interactive menu
-history-menu
+terminal-menu
 
-# Alternative command
-cmdmenu
+# Alternative commands
+cmd-menu
+# or
+tcm
 
 # View your command statistics
-history-menu --stats
+terminal-menu --stats
 
 # Skip confirmation prompts
-history-menu --no-confirm
+terminal-menu --no-confirm
 
 # Deactivate virtual environment when done
 deactivate
@@ -121,19 +123,19 @@ deactivate
 
 ```bash
 # Show help and all options
-history-menu --help
+terminal-menu --help
 
 # Force specific shell type
-history-menu --shell zsh
+terminal-menu --shell zsh
 
 # Limit displayed commands
-history-menu --max-commands 50
+terminal-menu --max-commands 50
 
 # View configuration paths
-history-menu --config
+terminal-menu --config
 
 # Refresh cached history
-history-menu --refresh
+terminal-menu --refresh
 ```
 
 ### Configuration
@@ -163,7 +165,7 @@ Settings are stored in `~/.config/terminal-command-menu/`:
 Get detailed insights into your command usage:
 
 ```bash
-$ history-menu --stats
+$ terminal-menu --stats
 
 📊 TERMINAL COMMAND MENU STATISTICS
 ==================================================
@@ -201,8 +203,8 @@ terminal-command-menu/
 │   ├── history_parser.py   # Shell history parsing
 │   ├── settings.py         # Configuration management
 │   └── executor.py         # Command execution
-├── history-menu            # Main executable
-├── cmdmenu                 # Alternative executable
+├── terminal-menu           # Main executable  
+├── cmd-menu                # Alternative executable
 ├── setup.sh                # Automated setup script (Unix/macOS)
 ├── setup.bat               # Automated setup script (Windows)
 ├── requirements.txt        # Python dependencies

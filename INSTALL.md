@@ -15,9 +15,11 @@
 
 3. **Run the application:**
    ```bash
-   history-menu
+   terminal-menu
    # or
-   cmdmenu
+   cmd-menu
+   # or
+   tcm
    ```
 
 ## Manual Installation
@@ -26,14 +28,15 @@ If you prefer to run without installing:
 
 ```bash
 # Make scripts executable
-chmod +x history-menu cmdmenu
+chmod +x terminal-menu cmd-menu
 
 # Add to your PATH or create aliases
 export PATH="$PATH:/path/to/terminal-tool"
 
 # Or create shell aliases
-alias history-menu='/path/to/terminal-tool/history-menu'
-alias cmdmenu='/path/to/terminal-tool/cmdmenu'
+alias terminal-menu='/path/to/terminal-tool/terminal-menu'
+alias cmd-menu='/path/to/terminal-tool/cmd-menu'
+alias tcm='/path/to/terminal-tool/terminal-menu'
 ```
 
 ## Shell Integration
@@ -42,42 +45,45 @@ For the best experience, add an alias to your shell profile:
 
 ### Zsh (.zshrc)
 ```bash
-alias hm='history-menu'
-alias cm='cmdmenu'
+alias tm='terminal-menu'
+alias cm='cmd-menu'
+alias tcm='terminal-menu'
 ```
 
 ### Bash (.bashrc or .bash_profile)
 ```bash
-alias hm='history-menu'
-alias cm='cmdmenu'
+alias tm='terminal-menu'
+alias cm='cmd-menu'
+alias tcm='terminal-menu'
 ```
 
 ### Fish (config.fish)
 ```fish
-alias hm='history-menu'
-alias cm='cmdmenu'
+alias tm='terminal-menu'
+alias cm='cmd-menu'
+alias tcm='terminal-menu'
 ```
 
 ## Usage Examples
 
 ```bash
 # Basic usage
-history-menu
+terminal-menu
 
 # Show statistics only
-history-menu --stats
+terminal-menu --stats
 
 # Skip confirmation prompts
-history-menu --no-confirm
+terminal-menu --no-confirm
 
 # Limit number of commands displayed
-history-menu --max-commands 50
+terminal-menu --max-commands 50
 
 # Force specific shell type
-history-menu --shell zsh
+terminal-menu --shell zsh
 
 # Show configuration paths
-history-menu --config
+terminal-menu --config
 ```
 
 ## Keyboard Shortcuts
@@ -97,7 +103,7 @@ The application stores its configuration in:
 
 You can view the current configuration paths with:
 ```bash
-history-menu --config
+terminal-menu --config
 ```
 
 ## Troubleshooting

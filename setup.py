@@ -15,8 +15,9 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "history-menu=terminal_menu.main:main",
-            "cmdmenu=terminal_menu.main:main",
+            "terminal-menu=terminal_menu.main:main",
+            "cmd-menu=terminal_menu.main:main",
+            "tcm=terminal_menu.main:main",
         ],
     },
     python_requires=">=3.8",
