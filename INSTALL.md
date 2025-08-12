@@ -2,12 +2,18 @@
 
 ## Quick Setup
 
-1. **Install the package:**
+1. **Create and activate a virtual environment (RECOMMENDED):**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+2. **Install the package:**
    ```bash
    pip install -e .
    ```
 
-2. **Run the application:**
+3. **Run the application:**
    ```bash
    history-menu
    # or
@@ -108,3 +114,8 @@ history-menu --config
 ### Python version
 - Requires Python 3.8 or higher
 - Check with: `python3 --version`
+
+### Virtual environment issues
+- Always use a virtual environment to avoid conflicts
+- If commands not found after installation, ensure venv is activated
+- Deactivate with: `deactivate`, reactivate with: `source venv/bin/activate`

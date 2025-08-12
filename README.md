@@ -58,10 +58,25 @@ $ history-menu
 
 ### Installation
 
+#### Option 1: Automated Setup (Recommended)
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/terminal-command-menu.git
 cd terminal-command-menu
+
+# Run the automated setup script
+./setup.sh
+```
+
+#### Option 2: Manual Setup
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/terminal-command-menu.git
+cd terminal-command-menu
+
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies and package
 pip install -e .
@@ -70,6 +85,9 @@ pip install -e .
 ### Usage
 
 ```bash
+# Activate the virtual environment (if not already active)
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
 # Launch the interactive menu
 history-menu
 
@@ -81,6 +99,9 @@ history-menu --stats
 
 # Skip confirmation prompts
 history-menu --no-confirm
+
+# Deactivate virtual environment when done
+deactivate
 ```
 
 ## ⌨️ Keyboard Shortcuts
@@ -182,8 +203,12 @@ terminal-command-menu/
 │   └── executor.py         # Command execution
 ├── history-menu            # Main executable
 ├── cmdmenu                 # Alternative executable
+├── setup.sh                # Automated setup script (Unix/macOS)
+├── setup.bat               # Automated setup script (Windows)
 ├── requirements.txt        # Python dependencies
 ├── setup.py               # Package configuration
+├── .gitignore             # Git ignore patterns
+├── LICENSE                # MIT License
 ├── README.md              # This file
 ├── INSTALL.md             # Detailed installation guide
 └── PROJECT_SUMMARY.md     # Complete project overview
@@ -218,6 +243,12 @@ This project was built from a comprehensive Product Requirements Document (PRD) 
 # Clone and install in development mode
 git clone https://github.com/yourusername/terminal-command-menu.git
 cd terminal-command-menu
+
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install in development mode
 pip install -e .
 
 # Run tests
