@@ -4,7 +4,8 @@ import os
 import sys
 import subprocess
 import shlex
-from typing import Optional, Tuple
+import re
+from typing import Optional, Tuple, Dict
 from pathlib import Path
 
 from .settings import Settings
@@ -16,6 +17,7 @@ class CommandExecutor:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.shell = self._detect_shell()
+        self._aliases_cache = None
     
     def _detect_shell(self) -> str:
         """Detect the user's shell."""
@@ -27,40 +29,100 @@ class CommandExecutor:
         shell = os.environ.get('SHELL', '/bin/bash')
         return shell
     
+    def _load_shell_aliases(self) -> Dict[str, str]:
+        """Load aliases from the user's shell configuration."""
+        if self._aliases_cache is not None:
+            return self._aliases_cache
+        
+        aliases = {}
+        shell_name = os.path.basename(self.shell)
+        
+        try:
+            if 'zsh' in shell_name:
+                # Get aliases from zsh - need to source .zshrc first
+                result = subprocess.run(
+                    ['zsh', '-i', '-c', 'source ~/.zshrc 2>/dev/null; alias'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    env=os.environ.copy()
+                )
+
+                if result.returncode == 0:
+                    aliases = self._parse_alias_output(result.stdout)
+            
+            elif 'bash' in shell_name:
+                # Get aliases from bash
+                result = subprocess.run(
+                    ['bash', '-i', '-c', 'source ~/.bashrc 2>/dev/null; alias'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    env=os.environ.copy()
+                )
+                if result.returncode == 0:
+                    aliases = self._parse_alias_output(result.stdout)
+        
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError):
+            # If we can't load aliases, fall back to empty dict
+            pass
+        
+        self._aliases_cache = aliases
+        return aliases
+    
+    def _parse_alias_output(self, alias_output: str) -> Dict[str, str]:
+        """Parse the output of the 'alias' command."""
+        aliases = {}
+        
+        for line in alias_output.strip().split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Parse lines like: alias k='kubectl'
+            # or: alias ll='ls -la'
+            # Handle both quoted and unquoted values
+            if '=' in line:
+                # Split on first =
+                parts = line.split('=', 1)
+                if len(parts) == 2:
+                    alias_name = parts[0].strip()
+                    alias_value = parts[1].strip()
+                    
+                    # Remove 'alias ' prefix if present
+                    if alias_name.startswith('alias '):
+                        alias_name = alias_name[6:].strip()
+                    
+                    # Remove quotes from value
+                    if alias_value.startswith(("'", '"')) and alias_value.endswith(("'", '"')):
+                        alias_value = alias_value[1:-1]
+                    
+                    if alias_name and alias_value:
+                        aliases[alias_name] = alias_value
+        return aliases
+    
     def prepare_command_for_execution(self, command: str) -> str:
-        """Prepare command for execution in the current shell context."""
+        """Prepare command for execution by expanding shell aliases."""
         command = command.strip()
+        if not command:
+            return command
         
-        # Handle common aliases by expanding them to full commands
-        # This ensures commands work even when aliases aren't available in subprocess
+        # Load shell aliases
+        aliases = self._load_shell_aliases()
         
-        # Kubectl aliases
-        if command.startswith('k '):
-            command = command.replace('k ', 'kubectl ', 1)
-        elif command == 'k':
-            command = 'kubectl'
+        # Split command into parts
+        parts = command.split()
+        if not parts:
+            return command
         
-        # Git aliases (common ones)
-        elif command.startswith('gco '):
-            command = command.replace('gco ', 'git checkout ', 1)
-        elif command == 'gco':
-            command = 'git checkout'
-        elif command.startswith('gst'):
-            command = command.replace('gst', 'git status', 1)
-        elif command.startswith('gaa'):
-            command = command.replace('gaa', 'git add --all', 1)
-        elif command.startswith('gcm '):
-            command = command.replace('gcm ', 'git commit -m ', 1)
-        elif command.startswith('gp'):
-            command = command.replace('gp', 'git push', 1)
-        elif command.startswith('gl'):
-            command = command.replace('gl', 'git pull', 1)
+        first_word = parts[0]
         
-        # List aliases
-        elif command == 'll':
-            command = 'ls -la'
-        elif command == 'la':
-            command = 'ls -la'
+        # Check if the first word is an alias
+        if first_word in aliases:
+            alias_expansion = aliases[first_word]
+            # Replace the first word with the alias expansion
+            expanded_parts = alias_expansion.split() + parts[1:]
+            return ' '.join(expanded_parts)
         
         return command
     
