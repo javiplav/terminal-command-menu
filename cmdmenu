@@ -1,0 +1,14 @@
+#!/Users/jplavnick/anaconda3/bin/python3
+"""Convenience script to run the terminal command menu (alias for history-menu)."""
+
+import sys
+import os
+
+# Add the package directory to Python path
+package_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, package_dir)
+
+from terminal_menu.main import main
+
+if __name__ == '__main__':
+    main()
