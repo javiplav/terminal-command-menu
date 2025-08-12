@@ -29,9 +29,40 @@ class CommandExecutor:
     
     def prepare_command_for_execution(self, command: str) -> str:
         """Prepare command for execution in the current shell context."""
-        # For now, return the command as-is
-        # In the future, this could handle alias expansion, etc.
-        return command.strip()
+        command = command.strip()
+        
+        # Handle common aliases by expanding them to full commands
+        # This ensures commands work even when aliases aren't available in subprocess
+        
+        # Kubectl aliases
+        if command.startswith('k '):
+            command = command.replace('k ', 'kubectl ', 1)
+        elif command == 'k':
+            command = 'kubectl'
+        
+        # Git aliases (common ones)
+        elif command.startswith('gco '):
+            command = command.replace('gco ', 'git checkout ', 1)
+        elif command == 'gco':
+            command = 'git checkout'
+        elif command.startswith('gst'):
+            command = command.replace('gst', 'git status', 1)
+        elif command.startswith('gaa'):
+            command = command.replace('gaa', 'git add --all', 1)
+        elif command.startswith('gcm '):
+            command = command.replace('gcm ', 'git commit -m ', 1)
+        elif command.startswith('gp'):
+            command = command.replace('gp', 'git push', 1)
+        elif command.startswith('gl'):
+            command = command.replace('gl', 'git pull', 1)
+        
+        # List aliases
+        elif command == 'll':
+            command = 'ls -la'
+        elif command == 'la':
+            command = 'ls -la'
+        
+        return command
     
     def execute_command_in_shell(self, command: str, cwd: Optional[str] = None) -> int:
         """Execute command in the user's shell and return exit code."""
@@ -59,6 +90,8 @@ class CommandExecutor:
         except Exception as e:
             print(f"Error executing command '{prepared_command}': {e}")
             return 1
+    
+
     
     def can_execute_command(self, command: str) -> Tuple[bool, str]:
         """Check if a command can be executed safely."""
