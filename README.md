@@ -56,44 +56,40 @@ $ terminal-menu
 
 ## 🚀 Quick Start
 
-### Installation
-
-#### Option 1: Automated Setup (Recommended)
+### Option 1: One-Line Install (Recommended)
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/terminal-command-menu.git
+# Download and install standalone version (no Python packages needed!)
+curl -fsSL https://raw.githubusercontent.com/javiplav/terminal-command-menu/main/quick-install.sh | bash
+```
+
+Or manually:
+```bash
+# Download standalone script
+curl -fsSL https://raw.githubusercontent.com/javiplav/terminal-command-menu/main/terminal-menu-standalone -o ~/.local/bin/terminal-menu
+chmod +x ~/.local/bin/terminal-menu
+
+# Add ~/.local/bin to PATH if needed
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+### Option 2: Development Setup
+```bash
+# Clone the repository for development
+git clone https://github.com/javiplav/terminal-command-menu.git
 cd terminal-command-menu
 
 # Run the automated setup script
 ./setup.sh
 ```
 
-#### Option 2: Manual Setup
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/terminal-command-menu.git
-cd terminal-command-menu
-
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies and package
-pip install -e .
-```
-
 ### Usage
 
 ```bash
-# Activate the virtual environment (if not already active)
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Launch the interactive menu
+# Launch the interactive menu (works immediately after install!)
 terminal-menu
 
 # Alternative commands
 cmd-menu
-# or
 tcm
 
 # View your command statistics
@@ -102,9 +98,11 @@ terminal-menu --stats
 # Skip confirmation prompts
 terminal-menu --no-confirm
 
-# Deactivate virtual environment when done
-deactivate
+# Show help
+terminal-menu --help
 ```
+
+**No virtual environments or package installation required with the standalone version!**
 
 ## ⌨️ Keyboard Shortcuts
 
@@ -225,7 +223,18 @@ terminal-command-menu/
 - **[Pydantic](https://pydantic-docs.helpmanual.io/)** - Data validation and settings
 
 ### Requirements
-- **Python**: 3.8 or higher
+
+#### Standalone Version (Recommended)
+- **Python**: 3.6+ (usually pre-installed)
+- **Dependencies**: None (uses standard library + curses)
+- **Installation**: Just download and run!
+
+#### Development Version
+- **Python**: 3.8 or higher  
+- **Dependencies**: pip packages (textual, rich, click, pydantic)
+- **Installation**: Virtual environment setup
+
+#### Both Versions
 - **Platforms**: macOS, Linux
 - **Terminal**: Color support recommended
 

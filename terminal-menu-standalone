@@ -1,0 +1,560 @@
+#!/usr/bin/env python3
+"""
+Terminal Command Menu - Standalone Version
+A self-contained script that requires no installation.
+
+Just download and run: ./terminal-menu-standalone
+"""
+
+import os
+import sys
+import subprocess
+import re
+import json
+import shlex
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+from collections import Counter
+from dataclasses import dataclass
+from datetime import datetime
+import argparse
+
+# Minimal dependencies check
+try:
+    import curses
+except ImportError:
+    print("Error: This script requires Python with curses support.")
+    print("On some systems, install: python3-curses or ncurses-dev")
+    sys.exit(1)
+
+@dataclass
+class Command:
+    """Represents a shell command with metadata."""
+    text: str
+    count: int
+    category: str = "Other"
+    last_used: Optional[datetime] = None
+
+class SimpleSettings:
+    """Lightweight settings without external dependencies."""
+    
+    def __init__(self):
+        self.config_dir = Path.home() / '.config' / 'terminal-command-menu'
+        self.config_dir.mkdir(parents=True, exist_ok=True)
+        self.settings_file = self.config_dir / 'settings.json'
+        self._settings = self._load_settings()
+    
+    def _load_settings(self):
+        defaults = {
+            'max_commands': 100,
+            'confirm_execution': True,
+            'sort_method': 'frequency'
+        }
+        
+        if self.settings_file.exists():
+            try:
+                with open(self.settings_file) as f:
+                    loaded = json.load(f)
+                    defaults.update(loaded)
+            except (json.JSONDecodeError, IOError):
+                pass
+        
+        return defaults
+    
+    def get(self, key, default=None):
+        return self._settings.get(key, default)
+
+class SimpleHistoryParser:
+    """Lightweight history parser without external dependencies."""
+    
+    def __init__(self):
+        self.home = Path.home()
+        self.command_categories = {
+            'git': ['git', 'gco', 'gst', 'gaa', 'gcm', 'gp', 'gl', 'gh'],
+            'docker': ['docker', 'docker-compose', 'podman'],
+            'kubernetes': ['kubectl', 'k', 'helm', 'kustomize'],
+            'npm': ['npm', 'yarn', 'pnpm', 'node'],
+            'python': ['python', 'pip', 'conda', 'poetry', 'pytest'],
+            'system': ['ls', 'cd', 'pwd', 'mkdir', 'rm', 'cp', 'mv', 'find', 'grep'],
+            'editor': ['vim', 'nvim', 'code', 'nano', 'emacs'],
+        }
+    
+    def detect_shell(self):
+        shell = os.environ.get('SHELL', '')
+        if 'zsh' in shell:
+            return 'zsh'
+        elif 'bash' in shell:
+            return 'bash'
+        elif 'fish' in shell:
+            return 'fish'
+        else:
+            # Try to detect based on available history files
+            if (self.home / '.zsh_history').exists():
+                return 'zsh'
+            elif (self.home / '.bash_history').exists():
+                return 'bash'
+            elif (self.home / '.local/share/fish/fish_history').exists():
+                return 'fish'
+            else:
+                return 'bash'
+    
+    def get_history_file_path(self, shell_type):
+        paths = {
+            'zsh': self.home / '.zsh_history',
+            'bash': self.home / '.bash_history',
+            'fish': self.home / '.local/share/fish/fish_history',
+        }
+        
+        path = paths.get(shell_type)
+        return path if path and path.exists() else None
+    
+    def parse_zsh_history(self, file_path):
+        commands = []
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    if line.startswith(':'):
+                        parts = line.split(';', 1)
+                        if len(parts) > 1:
+                            commands.append(parts[1].strip())
+                    else:
+                        commands.append(line)
+        except Exception as e:
+            print(f"Error reading zsh history: {e}")
+        
+        return commands
+    
+    def parse_bash_history(self, file_path):
+        commands = []
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        commands.append(line)
+        except Exception as e:
+            print(f"Error reading bash history: {e}")
+        
+        return commands
+    
+    def parse_fish_history(self, file_path):
+        commands = []
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                current_cmd = ""
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('- cmd:'):
+                        if current_cmd:
+                            commands.append(current_cmd)
+                        current_cmd = line[6:].strip()
+                    elif line.startswith('  when:') or line.startswith('- when:'):
+                        if current_cmd:
+                            commands.append(current_cmd)
+                            current_cmd = ""
+                
+                if current_cmd:
+                    commands.append(current_cmd)
+        except Exception as e:
+            print(f"Error reading fish history: {e}")
+        
+        return commands
+    
+    def categorize_command(self, command):
+        first_word = command.split()[0] if command.split() else ""
+        
+        for category, keywords in self.command_categories.items():
+            if first_word in keywords:
+                return category.title()
+        
+        return "Other"
+    
+    def clean_command(self, command):
+        command = command.strip()
+        
+        if command.startswith('sudo '):
+            command = command[5:]
+        
+        command = re.sub(r'\s+', ' ', command)
+        return command
+    
+    def parse_history(self, shell_type=None):
+        if shell_type is None:
+            shell_type = self.detect_shell()
+        
+        history_file = self.get_history_file_path(shell_type)
+        if not history_file:
+            print(f"No history file found for {shell_type}")
+            return []
+        
+        if shell_type == 'zsh':
+            raw_commands = self.parse_zsh_history(history_file)
+        elif shell_type == 'bash':
+            raw_commands = self.parse_bash_history(history_file)
+        elif shell_type == 'fish':
+            raw_commands = self.parse_fish_history(history_file)
+        else:
+            return []
+        
+        cleaned_commands = []
+        for cmd in raw_commands:
+            cleaned = self.clean_command(cmd)
+            if cleaned and len(cleaned) > 1:
+                cleaned_commands.append(cleaned)
+        
+        command_counts = Counter(cleaned_commands)
+        
+        commands = []
+        for cmd_text, count in command_counts.items():
+            category = self.categorize_command(cmd_text)
+            commands.append(Command(
+                text=cmd_text,
+                count=count,
+                category=category
+            ))
+        
+        commands.sort(key=lambda x: x.count, reverse=True)
+        return commands
+
+class SimpleCommandExecutor:
+    """Lightweight command executor with alias support."""
+    
+    def __init__(self):
+        self.shell = os.environ.get('SHELL', '/bin/bash')
+        self._aliases_cache = None
+    
+    def _load_shell_aliases(self):
+        if self._aliases_cache is not None:
+            return self._aliases_cache
+        
+        aliases = {}
+        shell_name = os.path.basename(self.shell)
+        
+        try:
+            if 'zsh' in shell_name:
+                result = subprocess.run(
+                    ['zsh', '-i', '-c', 'source ~/.zshrc 2>/dev/null; alias'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    env=os.environ.copy()
+                )
+                if result.returncode == 0:
+                    aliases = self._parse_alias_output(result.stdout)
+            
+            elif 'bash' in shell_name:
+                result = subprocess.run(
+                    ['bash', '-i', '-c', 'source ~/.bashrc 2>/dev/null; alias'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    env=os.environ.copy()
+                )
+                if result.returncode == 0:
+                    aliases = self._parse_alias_output(result.stdout)
+        
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError):
+            pass
+        
+        self._aliases_cache = aliases
+        return aliases
+    
+    def _parse_alias_output(self, alias_output):
+        aliases = {}
+        
+        for line in alias_output.strip().split('\n'):
+            line = line.strip()
+            if not line or '=' not in line:
+                continue
+            
+            parts = line.split('=', 1)
+            if len(parts) == 2:
+                alias_name = parts[0].strip()
+                alias_value = parts[1].strip()
+                
+                if alias_name.startswith('alias '):
+                    alias_name = alias_name[6:].strip()
+                
+                if alias_value.startswith(("'", '"')) and alias_value.endswith(("'", '"')):
+                    alias_value = alias_value[1:-1]
+                
+                if alias_name and alias_value:
+                    aliases[alias_name] = alias_value
+        
+        return aliases
+    
+    def prepare_command(self, command):
+        command = command.strip()
+        if not command:
+            return command
+        
+        aliases = self._load_shell_aliases()
+        parts = command.split()
+        if not parts:
+            return command
+        
+        first_word = parts[0]
+        
+        if first_word in aliases:
+            alias_expansion = aliases[first_word]
+            expanded_parts = alias_expansion.split() + parts[1:]
+            return ' '.join(expanded_parts)
+        
+        return command
+    
+    def execute_command(self, command):
+        prepared_command = self.prepare_command(command)
+        
+        try:
+            process = subprocess.run(
+                prepared_command,
+                shell=True,
+                cwd=os.getcwd(),
+                executable=self.shell,
+                env=os.environ.copy()
+            )
+            return process.returncode
+        except Exception as e:
+            print(f"Error executing command '{prepared_command}': {e}")
+            return 1
+
+class SimpleTUI:
+    """Simple terminal interface using curses."""
+    
+    def __init__(self, commands):
+        self.commands = commands
+        self.filtered_commands = commands.copy()
+        self.selected_index = 0
+        self.search_term = ""
+        self.search_mode = False
+    
+    def filter_commands(self, search_term):
+        if not search_term:
+            self.filtered_commands = self.commands.copy()
+        else:
+            search_lower = search_term.lower()
+            self.filtered_commands = [
+                cmd for cmd in self.commands
+                if search_lower in cmd.text.lower() or search_lower in cmd.category.lower()
+            ]
+        
+        self.selected_index = 0
+    
+    def run(self, stdscr):
+        curses.curs_set(0)  # Hide cursor
+        stdscr.clear()
+        
+        # Initialize colors
+        curses.start_color()
+        curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)    # Categories
+        curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)  # Counts
+        curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_WHITE)   # Selected
+        curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)   # Header
+        
+        while True:
+            stdscr.clear()
+            height, width = stdscr.getmaxyx()
+            
+            # Header
+            header = "Terminal Command Menu - Press '/' to search, 'q' to quit, Enter to execute"
+            stdscr.addstr(0, 0, header[:width-1], curses.color_pair(4) | curses.A_BOLD)
+            
+            # Search bar
+            search_line = f"Search: {self.search_term}"
+            if self.search_mode:
+                search_line += "_"
+            stdscr.addstr(1, 0, search_line[:width-1])
+            
+            # Commands list
+            start_row = 3
+            visible_rows = height - start_row - 1
+            
+            if not self.filtered_commands:
+                stdscr.addstr(start_row, 0, "No commands found")
+            else:
+                # Ensure selected index is valid
+                if self.selected_index >= len(self.filtered_commands):
+                    self.selected_index = len(self.filtered_commands) - 1
+                elif self.selected_index < 0:
+                    self.selected_index = 0
+                
+                # Calculate scroll offset
+                scroll_offset = max(0, self.selected_index - visible_rows // 2)
+                
+                for i in range(visible_rows):
+                    cmd_index = scroll_offset + i
+                    if cmd_index >= len(self.filtered_commands):
+                        break
+                    
+                    cmd = self.filtered_commands[cmd_index]
+                    row = start_row + i
+                    
+                    # Format command line
+                    category_str = f"[{cmd.category}]"
+                    count_str = f"({cmd.count}x)"
+                    
+                    # Calculate available space for command text
+                    prefix_len = len(category_str) + 1
+                    suffix_len = len(count_str) + 1
+                    available_width = width - prefix_len - suffix_len - 2
+                    
+                    command_text = cmd.text
+                    if len(command_text) > available_width:
+                        command_text = command_text[:available_width-3] + "..."
+                    
+                    # Highlight selected row
+                    if cmd_index == self.selected_index:
+                        attr = curses.color_pair(3) | curses.A_BOLD
+                    else:
+                        attr = curses.A_NORMAL
+                    
+                    try:
+                        # Clear the line first
+                        stdscr.addstr(row, 0, " " * (width - 1))
+                        
+                        # Add category
+                        stdscr.addstr(row, 0, category_str, curses.color_pair(1) | attr)
+                        
+                        # Add command
+                        stdscr.addstr(row, prefix_len, command_text, attr)
+                        
+                        # Add count (right-aligned)
+                        count_x = width - len(count_str) - 1
+                        if count_x > prefix_len + len(command_text) + 1:
+                            stdscr.addstr(row, count_x, count_str, curses.color_pair(2) | attr)
+                    
+                    except curses.error:
+                        # Handle screen size issues gracefully
+                        pass
+            
+            stdscr.refresh()
+            
+            # Handle input
+            try:
+                key = stdscr.getch()
+            except KeyboardInterrupt:
+                return None
+            
+            if self.search_mode:
+                if key == 27 or key == 10:  # ESC or Enter
+                    self.search_mode = False
+                elif key == curses.KEY_BACKSPACE or key == 127:
+                    if self.search_term:
+                        self.search_term = self.search_term[:-1]
+                        self.filter_commands(self.search_term)
+                elif 32 <= key <= 126:  # Printable characters
+                    self.search_term += chr(key)
+                    self.filter_commands(self.search_term)
+            else:
+                if key == ord('q') or key == 27:  # q or ESC
+                    return None
+                elif key == ord('/'):
+                    self.search_mode = True
+                elif key == curses.KEY_UP or key == ord('k'):
+                    if self.selected_index > 0:
+                        self.selected_index -= 1
+                elif key == curses.KEY_DOWN or key == ord('j'):
+                    if self.selected_index < len(self.filtered_commands) - 1:
+                        self.selected_index += 1
+                elif key == 10:  # Enter
+                    if self.filtered_commands and 0 <= self.selected_index < len(self.filtered_commands):
+                        return self.filtered_commands[self.selected_index].text
+                elif key == ord('c') and curses.LINES > 0:  # Ctrl+C
+                    return None
+
+def show_statistics(commands):
+    """Show command statistics."""
+    if not commands:
+        print("No commands found in history.")
+        return
+    
+    total_commands = sum(cmd.count for cmd in commands)
+    unique_commands = len(commands)
+    
+    # Category breakdown
+    category_counts = {}
+    for cmd in commands:
+        category_counts[cmd.category] = category_counts.get(cmd.category, 0) + cmd.count
+    
+    print("📊 TERMINAL COMMAND MENU STATISTICS")
+    print("=" * 50)
+    print(f"Total commands in history: {total_commands}")
+    print(f"Unique commands: {unique_commands}")
+    
+    print(f"\n📁 COMMAND CATEGORIES:")
+    for category, count in sorted(category_counts.items(), key=lambda x: x[1], reverse=True):
+        print(f"  {category}: {count}")
+    
+    print(f"\n🔥 TOP {min(10, len(commands))} COMMANDS:")
+    for i, cmd in enumerate(commands[:10], 1):
+        print(f"  {i:2d}. [{cmd.category}] {cmd.text} ({cmd.count}x)")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Terminal Command Menu - A developer productivity tool"
+    )
+    parser.add_argument('--stats', action='store_true', help='Show statistics and exit')
+    parser.add_argument('--shell', choices=['zsh', 'bash', 'fish'], 
+                       help='Specify shell type (auto-detected if not provided)')
+    parser.add_argument('--max-commands', type=int, default=100,
+                       help='Maximum number of commands to display')
+    parser.add_argument('--no-confirm', action='store_true',
+                       help='Skip confirmation before executing commands')
+    
+    args = parser.parse_args()
+    
+    # Initialize components
+    settings = SimpleSettings()
+    parser_obj = SimpleHistoryParser()
+    executor = SimpleCommandExecutor()
+    
+    # Parse history
+    commands = parser_obj.parse_history(args.shell)
+    
+    if args.stats:
+        show_statistics(commands)
+        return
+    
+    if not commands:
+        print("No commands found in shell history.")
+        return
+    
+    # Limit commands
+    max_commands = args.max_commands
+    commands = commands[:max_commands]
+    
+    print(f"Loaded {len(commands)} commands from shell history.")
+    print("Starting Terminal Command Menu...")
+    
+    try:
+        # Run TUI
+        tui = SimpleTUI(commands)
+        selected_command = curses.wrapper(tui.run)
+        
+        if selected_command:
+            print(f"\nExecuting: {selected_command}")
+            
+            if not args.no_confirm and not settings.get('no_confirm', False):
+                response = input("Execute this command? [Y/n]: ").strip().lower()
+                if response and response not in ['y', 'yes']:
+                    print("Command execution cancelled.")
+                    return
+            
+            # Execute the command
+            exit_code = executor.execute_command(selected_command)
+            sys.exit(exit_code)
+        else:
+            print("No command selected.")
+    
+    except KeyboardInterrupt:
+        print("\nOperation cancelled.")
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+if __name__ == '__main__':
+    main()
