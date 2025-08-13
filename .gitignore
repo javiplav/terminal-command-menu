@@ -86,3 +86,13 @@ Temporary Items
 debug_*.py
 test_*.py
 simple_*.py
+
+# Build artifacts
+*.egg-info/
+build/
+dist/
+
+# Local development
+.env
+.venv
+venv/

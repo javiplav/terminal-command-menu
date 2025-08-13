@@ -81,7 +81,7 @@ git clone https://github.com/javiplav/terminal-command-menu.git
 cd terminal-command-menu
 
 # Run the automated setup script
-./setup.sh
+./scripts/setup.sh
 ```
 
 ### Usage
@@ -196,24 +196,25 @@ Commands executed via app: 45
 
 ```
 terminal-command-menu/
-├── terminal_menu/           # Core package
+├── terminal_menu/              # Core Python package
 │   ├── __init__.py
-│   ├── main.py             # CLI entry point
-│   ├── tui.py              # Terminal UI components
-│   ├── history_parser.py   # Shell history parsing
-│   ├── settings.py         # Configuration management
-│   └── executor.py         # Command execution
-├── terminal-menu           # Main executable  
-├── cmd-menu                # Alternative executable
-├── setup.sh                # Automated setup script (Unix/macOS)
-├── setup.bat               # Automated setup script (Windows)
-├── requirements.txt        # Python dependencies
-├── setup.py               # Package configuration
-├── .gitignore             # Git ignore patterns
-├── LICENSE                # MIT License
-├── README.md              # This file
-├── INSTALL.md             # Detailed installation guide
-└── PROJECT_SUMMARY.md     # Complete project overview
+│   ├── main.py                # CLI entry point
+│   ├── tui.py                 # Terminal UI components
+│   ├── history_parser.py      # Shell history parsing
+│   ├── settings.py            # Configuration management
+│   └── executor.py            # Command execution
+├── scripts/                   # Installation & setup scripts
+│   ├── setup.sh              # Development setup (Unix/macOS)
+│   ├── setup.bat             # Development setup (Windows)
+│   └── install-global.sh     # Global wrapper installation
+├── docs/                      # Documentation
+│   └── PROJECT_SUMMARY.md    # Detailed project overview
+├── terminal-menu-standalone   # ⭐ Main deliverable (single file)
+├── install.sh                 # ⭐ Primary installer
+├── requirements.txt           # Python dependencies
+├── setup.py                  # Package configuration
+├── LICENSE                   # MIT License
+└── README.md                 # This file
 ```
 
 ## 🔧 Technical Details
@@ -254,7 +255,7 @@ This project was built from a comprehensive Product Requirements Document (PRD) 
 
 ```bash
 # Clone and install in development mode
-git clone https://github.com/yourusername/terminal-command-menu.git
+git clone https://github.com/javiplav/terminal-command-menu.git
 cd terminal-command-menu
 
 # Create and activate virtual environment
@@ -268,12 +269,12 @@ pip install -e .
 python -m pytest
 
 # Check the implementation against PRD
-cat PROJECT_SUMMARY.md
+cat docs/PROJECT_SUMMARY.md
 ```
 
 ### Feature Requests
 
-See `PROJECT_SUMMARY.md` for the complete feature roadmap and implementation status.
+See `docs/PROJECT_SUMMARY.md` for the complete feature roadmap and implementation status.
 
 ## 📄 License
 
