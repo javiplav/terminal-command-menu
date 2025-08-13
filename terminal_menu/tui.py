@@ -50,12 +50,18 @@ class CommandList(DataTable):
     def refresh_table(self) -> None:
         """Refresh the table with filtered commands."""
         self.clear()
+        
+        # Add rows for filtered commands
         for cmd in self.filtered_commands:
             category_text = Text(f"[{cmd.category}]", style="bold cyan")
             command_text = Text(cmd.text, style="white")
             count_text = Text(f"({cmd.count}x)", style="bold yellow")
             
             self.add_row(category_text, command_text, count_text, key=cmd.text)
+        
+        # Ensure proper focus and navigation after rebuild
+        if self.filtered_commands:
+            self.refresh()  # Force a refresh of the widget
     
     def filter_commands(self, search_term: str) -> None:
         """Filter commands based on search term."""
@@ -70,13 +76,22 @@ class CommandList(DataTable):
         
         self.refresh_table()
         
-        # Reset cursor to top
+        # Reset cursor to top and ensure proper navigation
         if self.filtered_commands:
+            # Use call_after_refresh to ensure table is fully updated
+            self.call_after_refresh(self._reset_cursor_position)
+    
+    def _reset_cursor_position(self) -> None:
+        """Reset cursor to the first row after filtering."""
+        if self.filtered_commands and self.row_count > 0:
             self.move_cursor(row=0)
+            self.focus()
     
     def action_select_command(self) -> None:
         """Execute the selected command."""
-        if self.cursor_row < len(self.filtered_commands):
+        # Ensure we have valid filtered commands and cursor position
+        if (self.filtered_commands and 
+            0 <= self.cursor_row < len(self.filtered_commands)):
             selected_command = self.filtered_commands[self.cursor_row]
             if self.on_execute:
                 self.on_execute(selected_command.text)
@@ -373,7 +388,12 @@ class TerminalCommandMenu(App):
     
     def on_search_input_focus_list_requested(self, message: SearchInput.FocusListRequested) -> None:
         """Handle focus list requests from search input."""
-        self.command_list.focus()
+        if self.command_list:
+            self.command_list.focus()
+            # Ensure proper cursor position after focus
+            if (self.command_list.filtered_commands and 
+                self.command_list.row_count > 0):
+                self.command_list.move_cursor(row=0)
     
     def on_confirm_dialog_command_confirmed(self, message: ConfirmDialog.CommandConfirmed) -> None:
         """Handle confirmed command execution."""
