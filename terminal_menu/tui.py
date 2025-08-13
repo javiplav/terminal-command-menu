@@ -29,6 +29,11 @@ class CommandList(DataTable):
         Binding("escape", "app.quit", "Quit"),
         Binding("ctrl+r", "refresh", "Refresh"),
         Binding("ctrl+s", "show_settings", "Settings"),
+        # Add explicit arrow key bindings
+        Binding("up", "cursor_up", "Move Up"),
+        Binding("down", "cursor_down", "Move Down"),
+        Binding("k", "cursor_up", "Move Up"),
+        Binding("j", "cursor_down", "Move Down"),
     ]
     
     def __init__(self, commands: List[Command], **kwargs):
@@ -59,9 +64,12 @@ class CommandList(DataTable):
             
             self.add_row(category_text, command_text, count_text, key=cmd.text)
         
-        # Ensure proper focus and navigation after rebuild
+        # Force a complete refresh of the widget
         if self.filtered_commands:
-            self.refresh()  # Force a refresh of the widget
+            self.refresh()
+            # Ensure the widget can receive focus and key events
+            self.can_focus = True
+            self.cursor_type = "row"
     
     def filter_commands(self, search_term: str) -> None:
         """Filter commands based on search term."""
@@ -87,6 +95,20 @@ class CommandList(DataTable):
             self.move_cursor(row=0)
             self.focus()
     
+    def action_cursor_up(self) -> None:
+        """Move cursor up with bounds checking."""
+        if self.filtered_commands and self.row_count > 0:
+            current_row = self.cursor_row
+            if current_row > 0:
+                self.move_cursor(row=current_row - 1)
+    
+    def action_cursor_down(self) -> None:
+        """Move cursor down with bounds checking."""
+        if self.filtered_commands and self.row_count > 0:
+            current_row = self.cursor_row
+            if current_row < self.row_count - 1:
+                self.move_cursor(row=current_row + 1)
+    
     def action_select_command(self) -> None:
         """Execute the selected command."""
         # Ensure we have valid filtered commands and cursor position
@@ -103,6 +125,18 @@ class CommandList(DataTable):
     def action_show_settings(self) -> None:
         """Show settings menu."""
         self.post_message(self.SettingsRequested())
+    
+    def on_key(self, event: events.Key) -> None:
+        """Handle key events directly as a fallback."""
+        if event.key == "up":
+            self.action_cursor_up()
+            event.prevent_default()
+        elif event.key == "down":
+            self.action_cursor_down()
+            event.prevent_default()
+        else:
+            # Let the parent handle other keys
+            super().on_key(event)
     
     class RefreshRequested(Message):
         """Message sent when refresh is requested."""
