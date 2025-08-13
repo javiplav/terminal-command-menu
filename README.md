@@ -59,17 +59,19 @@ $ terminal-menu
 ### Option 1: One-Line Install (Recommended)
 ```bash
 # Download and install standalone version (no Python packages needed!)
-curl -fsSL https://raw.githubusercontent.com/javiplav/terminal-command-menu/main/quick-install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/javiplav/terminal-command-menu/main/install.sh | bash
 ```
 
 Or manually:
 ```bash
 # Download standalone script
+mkdir -p ~/.local/bin
 curl -fsSL https://raw.githubusercontent.com/javiplav/terminal-command-menu/main/terminal-menu-standalone -o ~/.local/bin/terminal-menu
 chmod +x ~/.local/bin/terminal-menu
 
-# Add ~/.local/bin to PATH if needed
-export PATH="$HOME/.local/bin:$PATH"
+# Add ~/.local/bin to PATH (add to ~/.zshrc or ~/.bashrc)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
 ```
 
 ### Option 2: Development Setup
