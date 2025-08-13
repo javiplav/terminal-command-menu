@@ -90,17 +90,16 @@ cd terminal-command-menu
 # Launch the interactive menu (works immediately after install!)
 terminal-menu
 
-# Alternative commands
-cmd-menu
-tcm
+# ⚡ Fast mode - optimized performance (recommended!)
+terminal-menu --fast
+
+# 🚀 Maximum speed - fast mode + no confirmation
+terminal-menu --fast --no-confirm
 
 # View your command statistics
 terminal-menu --stats
 
-# Skip confirmation prompts
-terminal-menu --no-confirm
-
-# Show help
+# Show help and all options
 terminal-menu --help
 ```
 
@@ -125,11 +124,17 @@ terminal-menu --help
 # Show help and all options
 terminal-menu --help
 
+# Fast mode for better performance
+terminal-menu --fast
+
 # Force specific shell type
 terminal-menu --shell zsh
 
 # Limit displayed commands
 terminal-menu --max-commands 50
+
+# Skip confirmation dialogs
+terminal-menu --no-confirm
 
 # View configuration paths
 terminal-menu --config
@@ -245,10 +250,28 @@ terminal-command-menu/          # 📦 Clean, lightweight project (468K total)
 - **Terminal**: Color support recommended
 
 ### Performance
+
+#### Execution Speed
+- 🚀 **Fast mode**: ~10-50ms command overhead
+- 🐌 **Normal mode**: ~100-500ms overhead (alias preprocessing)
+- ⚡ **Direct shell**: ~0ms (for comparison)
+
+#### App Performance  
 - ⚡ **Sub-second startup** even with 2,000+ commands
 - 🔍 **Real-time search** with fuzzy matching
 - 💾 **Minimal memory footprint** with efficient data structures
 - 🔄 **Lazy loading** for large history files
+
+#### Performance Tips
+```bash
+# Recommended for daily use
+terminal-menu --fast --no-confirm
+
+# Create an alias for maximum speed
+echo "alias tcm='terminal-menu --fast --no-confirm'" >> ~/.zshrc
+```
+
+📖 **See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for detailed performance analysis and optimization guide.**
 
 ## 🤝 Contributing
 
