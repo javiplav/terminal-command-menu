@@ -39,12 +39,12 @@ class CommandExecutor:
         
         try:
             if 'zsh' in shell_name:
-                # Get aliases from zsh - need to source .zshrc first
+                # OPTIMIZED: Use faster alias loading with reduced timeout
                 result = subprocess.run(
                     ['zsh', '-i', '-c', 'source ~/.zshrc 2>/dev/null; alias'],
                     capture_output=True,
                     text=True,
-                    timeout=10,
+                    timeout=3,  # Reduced from 10 to 3 seconds
                     env=os.environ.copy()
                 )
 
@@ -52,12 +52,12 @@ class CommandExecutor:
                     aliases = self._parse_alias_output(result.stdout)
             
             elif 'bash' in shell_name:
-                # Get aliases from bash
+                # OPTIMIZED: Use faster alias loading with reduced timeout
                 result = subprocess.run(
                     ['bash', '-i', '-c', 'source ~/.bashrc 2>/dev/null; alias'],
                     capture_output=True,
                     text=True,
-                    timeout=10,
+                    timeout=3,  # Reduced from 10 to 3 seconds
                     env=os.environ.copy()
                 )
                 if result.returncode == 0:
@@ -126,9 +126,20 @@ class CommandExecutor:
         
         return command
     
-    def execute_command_in_shell(self, command: str, cwd: Optional[str] = None) -> int:
-        """Execute command in the user's shell and return exit code."""
-        prepared_command = self.prepare_command_for_execution(command)
+    def execute_command_in_shell(self, command: str, cwd: Optional[str] = None, fast_mode: bool = False) -> int:
+        """Execute command in the user's shell and return exit code.
+        
+        Args:
+            command: The command to execute
+            cwd: Working directory (defaults to current)
+            fast_mode: If True, skip alias expansion for faster execution
+        """
+        if fast_mode:
+            # FAST MODE: Skip alias expansion for maximum performance
+            prepared_command = command.strip()
+        else:
+            # NORMAL MODE: Full alias expansion (slower but more compatible)
+            prepared_command = self.prepare_command_for_execution(command)
         
         # Record the execution in statistics
         self.settings.record_execution(prepared_command)
@@ -138,14 +149,25 @@ class CommandExecutor:
             cwd = os.getcwd()
         
         try:
-            # Execute in the user's shell
-            process = subprocess.run(
-                prepared_command,
-                shell=True,
-                cwd=cwd,
-                executable=self.shell,
-                env=os.environ.copy()
-            )
+            if fast_mode:
+                # OPTIMIZED: Use shell's built-in alias resolution
+                # This lets the shell handle aliases directly without our overhead
+                shell_command = f'{self.shell} -i -c "{prepared_command}"'
+                process = subprocess.run(
+                    shell_command,
+                    shell=True,
+                    cwd=cwd,
+                    env=os.environ.copy()
+                )
+            else:
+                # STANDARD: Execute with our alias expansion
+                process = subprocess.run(
+                    prepared_command,
+                    shell=True,
+                    cwd=cwd,
+                    executable=self.shell,
+                    env=os.environ.copy()
+                )
             
             return process.returncode
             
@@ -204,11 +226,15 @@ class CommandExecutor:
         return previews.get(first_word, f"Execute: {command}")
 
 
-def execute_command_and_exit(command: str) -> None:
+def execute_command_and_exit(command: str, fast_mode: bool = False) -> None:
     """Execute a command and exit the application properly.
     
     This function is designed to be called from the main application
     to execute a selected command and then exit cleanly.
+    
+    Args:
+        command: The command to execute
+        fast_mode: If True, use optimized execution (faster but less preprocessing)
     """
     settings = Settings()
     executor = CommandExecutor(settings)
@@ -220,10 +246,13 @@ def execute_command_and_exit(command: str) -> None:
         sys.exit(1)
     
     # Show what we're about to execute
-    print(f"Executing: {command}")
+    if fast_mode:
+        print(f"⚡ Fast executing: {command}")
+    else:
+        print(f"Executing: {command}")
     
     # Execute the command
-    exit_code = executor.execute_command_in_shell(command)
+    exit_code = executor.execute_command_in_shell(command, fast_mode=fast_mode)
     
     # Exit with the same code as the executed command
     sys.exit(exit_code)

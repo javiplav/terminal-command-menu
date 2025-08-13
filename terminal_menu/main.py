@@ -20,6 +20,8 @@ from .settings import Settings
               help='Maximum number of commands to display')
 @click.option('--no-confirm', is_flag=True,
               help='Skip confirmation before executing commands')
+@click.option('--fast', is_flag=True,
+              help='Enable fast mode (skip alias preprocessing for better performance)')
 @click.option('--stats', is_flag=True,
               help='Show statistics and exit')
 @click.option('--refresh', is_flag=True,
@@ -27,7 +29,7 @@ from .settings import Settings
 @click.option('--config', is_flag=True,
               help='Show configuration path and exit')
 @click.version_option(version='1.0.0', prog_name='Terminal Command Menu')
-def main(shell: Optional[str], max_commands: int, no_confirm: bool, 
+def main(shell: Optional[str], max_commands: int, no_confirm: bool, fast: bool,
          stats: bool, refresh: bool, config: bool) -> None:
     """Terminal Command Menu - A developer productivity tool for frequently used commands.
     
@@ -64,6 +66,9 @@ def main(shell: Optional[str], max_commands: int, no_confirm: bool,
     if no_confirm:
         settings.set('confirm_execution', False)
     
+    if fast:
+        settings.set('fast_mode', True)
+    
     # Increment session count
     settings.increment_session_count()
     
@@ -72,8 +77,8 @@ def main(shell: Optional[str], max_commands: int, no_confirm: bool,
         selected_command = run_tui()
         
         if selected_command:
-            # Execute the selected command
-            execute_command_and_exit(selected_command)
+            # Execute the selected command with fast mode if enabled
+            execute_command_and_exit(selected_command, fast_mode=fast)
         else:
             # User cancelled or quit
             sys.exit(0)
