@@ -195,26 +195,29 @@ Commands executed via app: 45
 ## 🏗️ Project Structure
 
 ```
-terminal-command-menu/
-├── terminal_menu/              # Core Python package
+terminal-command-menu/          # 📦 Clean, lightweight project (468K total)
+├── terminal_menu/              # 🐍 Core Python package
 │   ├── __init__.py
 │   ├── main.py                # CLI entry point
 │   ├── tui.py                 # Terminal UI components
 │   ├── history_parser.py      # Shell history parsing
 │   ├── settings.py            # Configuration management
 │   └── executor.py            # Command execution
-├── scripts/                   # Installation & setup scripts
-│   ├── setup.sh              # Development setup (Unix/macOS)
-│   ├── setup.bat             # Development setup (Windows)
+├── scripts/                   # 🔧 Development & setup scripts
+│   ├── setup.sh              # Automated dev setup (Unix/macOS)
+│   ├── setup.bat             # Automated dev setup (Windows)
 │   └── install-global.sh     # Global wrapper installation
-├── docs/                      # Documentation
+├── docs/                      # 📚 Documentation
 │   └── PROJECT_SUMMARY.md    # Detailed project overview
 ├── terminal-menu-standalone   # ⭐ Main deliverable (single file)
-├── install.sh                 # ⭐ Primary installer
+├── install.sh                 # ⭐ One-line installer
 ├── requirements.txt           # Python dependencies
 ├── setup.py                  # Package configuration
+├── .gitignore                # Git ignore (excludes venv/, .venv/, etc.)
 ├── LICENSE                   # MIT License
 └── README.md                 # This file
+
+# Note: venv/ directories are created locally for development but excluded from git
 ```
 
 ## 🔧 Technical Details
@@ -258,19 +261,27 @@ This project was built from a comprehensive Product Requirements Document (PRD) 
 git clone https://github.com/javiplav/terminal-command-menu.git
 cd terminal-command-menu
 
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Option A: Use automated setup script (recommended)
+./scripts/setup.sh
 
-# Install in development mode
-pip install -e .
+# Option B: Manual setup
+python3 -m venv venv           # Create virtual environment
+source venv/bin/activate       # Activate it (Windows: venv\Scripts\activate)
+pip install --upgrade pip      # Upgrade pip
+pip install -e .              # Install in development mode
 
-# Run tests
-python -m pytest
+# Verify installation
+terminal-menu --help
 
 # Check the implementation against PRD
 cat docs/PROJECT_SUMMARY.md
 ```
+
+### Development Notes
+
+- **Virtual Environment**: Always use a virtual environment for development. The project .gitignore excludes `venv/`, `.venv/`, and other common venv directory names.
+- **Dependencies**: Keep `requirements.txt` updated when adding new dependencies.
+- **Testing**: Run the standalone version to test changes without package installation.
 
 ### Feature Requests
 
