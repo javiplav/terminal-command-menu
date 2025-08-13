@@ -240,7 +240,7 @@ class SimpleCommandExecutor:
                     ['zsh', '-i', '-c', 'source ~/.zshrc 2>/dev/null; alias'],
                     capture_output=True,
                     text=True,
-                    timeout=10,
+                    timeout=3,  # Reduced timeout for better performance
                     env=os.environ.copy()
                 )
                 if result.returncode == 0:
@@ -251,7 +251,7 @@ class SimpleCommandExecutor:
                     ['bash', '-i', '-c', 'source ~/.bashrc 2>/dev/null; alias'],
                     capture_output=True,
                     text=True,
-                    timeout=10,
+                    timeout=3,  # Reduced timeout for better performance
                     env=os.environ.copy()
                 )
                 if result.returncode == 0:
@@ -306,17 +306,33 @@ class SimpleCommandExecutor:
         
         return command
     
-    def execute_command(self, command):
-        prepared_command = self.prepare_command(command)
+    def execute_command(self, command, fast_mode=False):
+        if fast_mode:
+            # FAST MODE: Skip alias expansion for maximum performance
+            prepared_command = command.strip()
+        else:
+            # NORMAL MODE: Full alias expansion (slower but more compatible)
+            prepared_command = self.prepare_command(command)
         
         try:
-            process = subprocess.run(
-                prepared_command,
-                shell=True,
-                cwd=os.getcwd(),
-                executable=self.shell,
-                env=os.environ.copy()
-            )
+            if fast_mode:
+                # OPTIMIZED: Use shell's built-in alias resolution
+                shell_command = f'{self.shell} -i -c "{prepared_command}"'
+                process = subprocess.run(
+                    shell_command,
+                    shell=True,
+                    cwd=os.getcwd(),
+                    env=os.environ.copy()
+                )
+            else:
+                # STANDARD: Execute with our alias expansion
+                process = subprocess.run(
+                    prepared_command,
+                    shell=True,
+                    cwd=os.getcwd(),
+                    executable=self.shell,
+                    env=os.environ.copy()
+                )
             return process.returncode
         except Exception as e:
             print(f"Error executing command '{prepared_command}': {e}")
@@ -504,6 +520,8 @@ def main():
                        help='Maximum number of commands to display')
     parser.add_argument('--no-confirm', action='store_true',
                        help='Skip confirmation before executing commands')
+    parser.add_argument('--fast', action='store_true',
+                       help='Enable fast mode (skip alias preprocessing for better performance)')
     
     args = parser.parse_args()
     
@@ -536,7 +554,10 @@ def main():
         selected_command = curses.wrapper(tui.run)
         
         if selected_command:
-            print(f"\nExecuting: {selected_command}")
+            if args.fast:
+                print(f"\n⚡ Fast executing: {selected_command}")
+            else:
+                print(f"\nExecuting: {selected_command}")
             
             if not args.no_confirm and not settings.get('no_confirm', False):
                 response = input("Execute this command? [Y/n]: ").strip().lower()
@@ -544,8 +565,8 @@ def main():
                     print("Command execution cancelled.")
                     return
             
-            # Execute the command
-            exit_code = executor.execute_command(selected_command)
+            # Execute the command with fast mode if enabled
+            exit_code = executor.execute_command(selected_command, fast_mode=args.fast)
             sys.exit(exit_code)
         else:
             print("No command selected.")
